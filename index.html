@@ -464,9 +464,9 @@ function renderHistory() {
     detailsHtml += `<div class="history-detail-row"><span class="history-detail-ex">CARDIO</span><span class="history-detail-weight">${s.cardioMin}MIN ${(s.cardioType||'').toUpperCase()}</span></div>`;
     detailsHtml += '</div>';
     
-    const deleteBtn = `<button style="background:transparent;border:1px solid var(--red-warn);color:var(--red-warn);padding:4px 8px;font-size:9px;cursor:pointer;margin-left:8px;" onclick="deleteSession(${idx}, event)">🗑 LÖSCHEN</button>`;
+    const deleteBtn = `<button style="background:var(--brown-mid);border:1px solid var(--red-warn);color:var(--red-warn);padding:4px 8px;font-size:8px;cursor:pointer;margin-left:8px;border-radius:2px;" onclick="deleteSession(${idx}, event)">🗑 LÖSCHEN</button>`;
     
-    row.innerHTML = detailsHtml + `<div class="history-toggle" onclick="toggleHistoryDetails(${idx})"><div><div class="history-date">${d}</div><div class="history-meta">${s.warmupMin}MIN AUFWÄRMEN · ${s.cardioMin}MIN ${(s.cardioType||'').toUpperCase()}</div></div><div class="history-badge">${s.setsCompleted}/${s.totalSets} SÄTZE</div>${deleteBtn}</div>`;
+    row.innerHTML = detailsHtml + `<div class="history-toggle" onclick="toggleHistoryDetails(${idx})"><div style="flex:1;min-width:200px;"><div class="history-date">${d}</div><div class="history-meta">${s.warmupMin}MIN AUFWÄRMEN · ${s.cardioMin}MIN ${(s.cardioType||'').toUpperCase()}</div></div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><div class="history-badge">${s.setsCompleted}/${s.totalSets} SÄTZE</div>${deleteBtn}</div></div>`;
     el.appendChild(row);
   });
 }
@@ -483,7 +483,9 @@ async function deleteSession(idx, event) {
   if(!confirm('EINHEIT WIRKLICH LÖSCHEN? Fortschritt wird zurückgesetzt.')) return;
   
   const session = [...appState.sessions].reverse()[idx];
+  console.log('Deleting session:', session);
   try {
+    // Use exact filter for deletion
     await dbDelete('gym_sessions', `user_id=eq.${USER_ID}&date=eq.${session.date}`);
     appState.sessions = appState.sessions.filter(s => s.date !== session.date);
     renderHistory();
@@ -491,6 +493,7 @@ async function deleteSession(idx, event) {
     renderProgress();
     toast('EINHEIT GELÖSCHT');
   } catch(e) {
+    console.error('Delete error:', e);
     toast('LÖSCHEN FEHLGESCHLAGEN: ' + e.message);
   }
 }

@@ -285,6 +285,9 @@ async function dbPost(table, data) {
 async function dbPatch(table, filter, data) {
   return fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, { method:'PATCH', headers: {...HEADERS,'Prefer':'return=representation'}, body: JSON.stringify(data) });
 }
+async function dbDelete(table, filter) {
+  return fetch(`${SUPABASE_URL}/rest/v1/${table}?${filter}`, { method:'DELETE', headers: HEADERS });
+}
 
 function setSyncStatus(type, msg) {
   const dot = document.getElementById('sync-dot');
@@ -319,6 +322,12 @@ async function loadFromDB() {
     updateMetrics();
     renderExercises();
     updateCardioTip();
+    
+    // Auto-select last cardio type
+    const lastSession = [...appState.sessions].reverse().find(s => s.cardioType);
+    if(lastSession && lastSession.cardioType) {
+      document.getElementById('cardio-type').value = lastSession.cardioType;
+    }
   } catch(e) {
     setSyncStatus('error', 'VERBINDUNGSFEHLER — PRÜFE INTERNET');
     toast('DB FEHLER: ' + e.message);
@@ -443,16 +452,21 @@ function renderHistory() {
     // Build details HTML
     let detailsHtml = '<div class="history-details" id="details-'+idx+'">';
     detailsHtml += '<div style="font-size:9px;color:var(--amber-dim);margin-bottom:8px;letter-spacing:0.1em;">TRAININGS DETAILS</div>';
+    
+    // Sets completed per exercise
     EXERCISES.forEach(ex => {
       if(s.weights && s.weights[ex.id]) {
         detailsHtml += `<div class="history-detail-row"><span class="history-detail-ex">${ex.name}</span><span class="history-detail-weight">${s.weights[ex.id]}KG</span></div>`;
       }
     });
+    detailsHtml += `<div class="history-detail-row"><span class="history-detail-ex">SÄTZE</span><span class="history-detail-weight">${s.setsCompleted}/${s.totalSets}</span></div>`;
     detailsHtml += `<div class="history-detail-row"><span class="history-detail-ex">AUFWÄRMEN</span><span class="history-detail-weight">${s.warmupMin}MIN</span></div>`;
     detailsHtml += `<div class="history-detail-row"><span class="history-detail-ex">CARDIO</span><span class="history-detail-weight">${s.cardioMin}MIN ${(s.cardioType||'').toUpperCase()}</span></div>`;
     detailsHtml += '</div>';
     
-    row.innerHTML = detailsHtml + `<div class="history-toggle" onclick="toggleHistoryDetails(${idx})"><div><div class="history-date">${d}</div><div class="history-meta">${s.warmupMin}MIN AUFWÄRMEN · ${s.cardioMin}MIN ${(s.cardioType||'').toUpperCase()}</div></div><div class="history-badge">${s.setsCompleted}/${s.totalSets} SÄTZE</div></div>`;
+    const deleteBtn = `<button style="background:transparent;border:1px solid var(--red-warn);color:var(--red-warn);padding:4px 8px;font-size:9px;cursor:pointer;margin-left:8px;" onclick="deleteSession(${idx}, event)">🗑 LÖSCHEN</button>`;
+    
+    row.innerHTML = detailsHtml + `<div class="history-toggle" onclick="toggleHistoryDetails(${idx})"><div><div class="history-date">${d}</div><div class="history-meta">${s.warmupMin}MIN AUFWÄRMEN · ${s.cardioMin}MIN ${(s.cardioType||'').toUpperCase()}</div></div><div class="history-badge">${s.setsCompleted}/${s.totalSets} SÄTZE</div>${deleteBtn}</div>`;
     el.appendChild(row);
   });
 }
@@ -462,6 +476,23 @@ function toggleHistoryDetails(idx) {
   const toggle = details.nextElementSibling;
   details.classList.toggle('open');
   toggle.classList.toggle('open');
+}
+
+async function deleteSession(idx, event) {
+  event.stopPropagation();
+  if(!confirm('EINHEIT WIRKLICH LÖSCHEN? Fortschritt wird zurückgesetzt.')) return;
+  
+  const session = [...appState.sessions].reverse()[idx];
+  try {
+    await dbDelete('gym_sessions', `user_id=eq.${USER_ID}&date=eq.${session.date}`);
+    appState.sessions = appState.sessions.filter(s => s.date !== session.date);
+    renderHistory();
+    updateMetrics();
+    renderProgress();
+    toast('EINHEIT GELÖSCHT');
+  } catch(e) {
+    toast('LÖSCHEN FEHLGESCHLAGEN: ' + e.message);
+  }
 }
 
 function renderProgress() {

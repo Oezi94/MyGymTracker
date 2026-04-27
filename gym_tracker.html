@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ÖZI's FITNESS SYSTEM v1.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root {
+  --amber: #E8A020;
+  --amber-bright: #FFB830;
+  --amber-dim: #A06010;
+  --amber-glow: #C87818;
+  --brown-deep: #1A0E04;
+  --brown-mid: #2D1A08;
+  --brown-surface: #3D2410;
+  --brown-card: #261408;
+  --green-go: #4CAF50;
+  --red-warn: #C0392B;
+  --scan-line: rgba(0,0,0,0.18);
+  --font-display: 'Orbitron', monospace;
+  --font-mono: 'Share Tech Mono', monospace;
+  --font-crt: 'VT323', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--brown-deep);
+  color: var(--amber);
+  font-family: var(--font-mono);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* CRT scan lines overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    var(--scan-line) 0px,
+    var(--scan-line) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Vignette */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.65) 100%);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* Subtle phosphor flicker */
+@keyframes flicker {
+  0%,100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.97; }
+  94% { opacity: 1; }
+  97% { opacity: 0.98; }
+}
+.main-wrap { animation: flicker 8s infinite; }
+
+.main-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+/* ── HEADER ── */
+.header {
+  border: 2px solid var(--amber);
+  border-radius: 2px;
+  padding: 20px 28px;
+  margin-bottom: 20px;
+  position: relative;
+  background: var(--brown-card);
+}
+.header::before {
+  content: '◈ ZTEK STUDIO FITNESS DIVISION ◈';
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  background: var(--brown-deep);
+  padding: 0 10px;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--amber-dim);
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.system-title {
+  font-family: var(--font-display);
+  font-size: clamp(16px, 3vw, 26px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--amber-bright);
+  text-shadow: 0 0 20px var(--amber), 0 0 40px rgba(232,160,32,0.3);
+}
+.system-subtitle {
+  font-size: 11px;
+  color: var(--amber-dim);
+  letter-spacing: 0.15em;
+  margin-top: 4px;
+}
+.header-right {
+  text-align: right;
+}
+.date-display {
+  font-family: var(--font-crt);
+  font-size: 22px;
+  color: var(--amber-bright);
+  letter-spacing: 0.05em;
+}
+.week-display {
+  font-size: 11px;
+  color: var(--amber-dim);
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+
+/* ── METRICS ROW ── */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.metric-box {
+  border: 1.5px solid var(--amber-dim);
+  background: var(--brown-card);
+  padding: 16px;
+  text-align: center;
+  position: relative;
+  transition: border-color 0.2s;
+}
+.metric-box:hover { border-color: var(--amber); }
+.metric-box::before {
+  content: attr(data-label);
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--brown-deep);
+  padding: 0 8px;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--amber-dim);
+  white-space: nowrap;
+}
+.metric-value {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--amber-bright);
+  text-shadow: 0 0 12px var(--amber);
+  line-height: 1;
+}
+.metric-unit {
+  font-size: 10px;
+  color: var(--amber-dim);
+  letter-spacing: 0.1em;
+  margin-top: 6px;
+}
+
+/* ── TABS ── */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  margin-bottom: 20px;
+  border: 1.5px solid var(--amber-dim);
+}
+.tab-btn {
+  flex: 1;
+  padding: 10px 8px;
+  background: var(--brown-card);
+  border: none;
+  border-right: 1px solid var(--amber-dim);
+  color: var(--amber-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.tab-btn:last-child { border-right: none; }
+.tab-btn:hover { background: var(--brown-surface); color: var(--amber); }
+.tab-btn.active {
+  background: var(--brown-surface);
+  color: var(--amber-bright);
+  text-shadow: 0 0 8px var(--amber);
+  position: relative;
+}
+.tab-btn.active::after {
+  content: '▶';
+  font-size: 8px;
+  margin-left: 6px;
+  color: var(--amber);
+}
+
+/* ── PANEL ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  color: var(--amber-dim);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  padding-left: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--brown-surface);
+}
+
+/* ── WARMUP / CARDIO CARD ── */
+.info-card {
+  border: 1.5px solid var(--amber-dim);
+  background: var(--brown-card);
+  padding: 14px 18px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.info-card-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.field-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--amber-dim);
+  text-transform: uppercase;
+}
+.retro-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--amber-dim);
+  color: var(--amber-bright);
+  font-family: var(--font-crt);
+  font-size: 26px;
+  width: 60px;
+  outline: none;
+  text-align: center;
+  padding: 0 4px;
+  transition: border-color 0.2s;
+}
+.retro-input:focus { border-bottom-color: var(--amber); }
+.retro-select {
+  background: var(--brown-mid);
+  border: 1px solid var(--amber-dim);
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 8px;
+  outline: none;
+  cursor: pointer;
+}
+
+/* ── EXERCISE CARD ── */
+.ex-card {
+  border: 1.5px solid var(--amber-dim);
+  background: var(--brown-card);
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.ex-card:hover { border-color: var(--amber-glow); }
+.ex-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--brown-surface);
+}
+.ex-name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--amber-bright);
+  letter-spacing: 0.04em;
+}
+.ex-group-tag {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--brown-deep);
+  background: var(--amber-dim);
+  padding: 2px 8px;
+  text-transform: uppercase;
+}
+.sets-container {
+  display: flex;
+  gap: 0;
+  padding: 0;
+}
+.set-cell {
+  flex: 1;
+  border-right: 1px solid var(--brown-surface);
+  padding: 10px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+.set-cell:last-child { border-right: none; }
+.set-cell:hover { background: var(--brown-surface); }
+.set-cell.done {
+  background: rgba(232,160,32,0.08);
+}
+.set-cell.done .set-check { color: var(--amber-bright); text-shadow: 0 0 8px var(--amber); }
+.set-num {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--amber-dim);
+  margin-bottom: 6px;
+}
+.set-check {
+  font-size: 18px;
+  color: var(--brown-surface);
+  display: block;
+  margin-bottom: 4px;
+  transition: all 0.15s;
+}
+.set-weight-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--brown-surface);
+  color: var(--amber);
+  font-family: var(--font-crt);
+  font-size: 20px;
+  width: 52px;
+  outline: none;
+  text-align: center;
+  padding: 0 2px;
+  display: block;
+  margin: 0 auto 2px;
+  transition: border-color 0.2s;
+}
+.set-weight-input:focus { border-bottom-color: var(--amber); }
+.set-reps {
+  font-size: 9px;
+  color: var(--amber-dim);
+  letter-spacing: 0.1em;
+}
+
+/* ── FINISH BUTTON ── */
+.btn-finish {
+  width: 100%;
+  margin-top: 20px;
+  padding: 16px;
+  background: transparent;
+  border: 2px solid var(--amber);
+  color: var(--amber-bright);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s;
+  text-shadow: 0 0 8px var(--amber);
+}
+.btn-finish::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--amber);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.25s;
+  z-index: 0;
+}
+.btn-finish:hover::before { transform: scaleX(1); }
+.btn-finish:hover { color: var(--brown-deep); text-shadow: none; }
+.btn-finish span { position: relative; z-index: 1; }
+
+/* ── HISTORY ── */
+.history-entry {
+  border: 1px solid var(--brown-surface);
+  background: var(--brown-card);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.2s;
+}
+.history-entry:hover { border-color: var(--amber-dim); }
+.history-date { font-family: var(--font-crt); font-size: 20px; color: var(--amber); }
+.history-meta { font-size: 11px; color: var(--amber-dim); margin-top: 2px; letter-spacing: 0.06em; }
+.history-badge {
+  font-size: 10px;
+  border: 1px solid var(--amber-dim);
+  color: var(--amber);
+  padding: 4px 10px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+.empty-msg {
+  text-align: center;
+  padding: 40px;
+  color: var(--amber-dim);
+  font-family: var(--font-crt);
+  font-size: 24px;
+  letter-spacing: 0.1em;
+}
+
+/* ── PROGRESS BARS ── */
+.progress-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 48px;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.progress-label { font-size: 11px; color: var(--amber-dim); letter-spacing: 0.05em; }
+.progress-track {
+  height: 8px;
+  background: var(--brown-surface);
+  position: relative;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--amber);
+  box-shadow: 0 0 6px var(--amber);
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+  position: relative;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--amber-bright);
+  box-shadow: 0 0 6px var(--amber-bright);
+}
+.progress-count { font-size: 13px; color: var(--amber); text-align: right; }
+
+/* ── WEIGHT PROGRESS ── */
+.weight-row {
+  border: 1px solid var(--brown-surface);
+  background: var(--brown-card);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.weight-ex { font-size: 13px; color: var(--amber); }
+.weight-vals { font-family: var(--font-crt); font-size: 22px; color: var(--amber-dim); }
+.weight-delta { font-size: 11px; letter-spacing: 0.1em; }
+.delta-up { color: var(--green-go); text-shadow: 0 0 6px var(--green-go); }
+.delta-same { color: var(--amber-dim); }
+
+/* ── TOAST ── */
+@keyframes slideUp {
+  from { transform: translate(-50%, 20px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--brown-card);
+  border: 1.5px solid var(--amber);
+  color: var(--amber-bright);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  padding: 12px 24px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 99999;
+  box-shadow: 0 0 20px rgba(232,160,32,0.3);
+  text-shadow: 0 0 6px var(--amber);
+  transition: opacity 0.3s;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; animation: slideUp 0.3s ease; }
+
+/* ── STATUS LIGHT ── */
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; box-shadow: 0 0 4px var(--green-go); }
+  50% { opacity: 0.4; box-shadow: none; }
+}
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green-go);
+  animation: pulse-dot 2s infinite;
+}
+.status-text { font-size: 10px; letter-spacing: 0.15em; color: var(--amber-dim); }
+
+/* responsive */
+@media (max-width: 520px) {
+  .metrics-row { grid-template-columns: repeat(3,1fr); }
+  .metric-value { font-size: 26px; }
+  .progress-row { grid-template-columns: 90px 1fr 40px; }
+}
+</style>
+</head>
+<body>
+<div class="main-wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-inner">
+      <div>
+        <div class="system-title">ÖZI FITNESS SYS</div>
+        <div class="system-subtitle">◈ BODY OPTIMIZATION TERMINAL v1.0 ◈</div>
+      </div>
+      <div class="header-right">
+        <div class="date-display" id="date-display">--</div>
+        <div class="week-display" id="week-display">WOCHE --</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-row">
+    <div class="status-dot"></div>
+    <div class="status-text">SYSTEM ONLINE — BASIC FIT HEIDELBERG — FULL BODY PROTOCOL GELADEN</div>
+  </div>
+
+  <!-- METRICS -->
+  <div class="metrics-row">
+    <div class="metric-box" data-label="GESAMT EINHEITEN">
+      <div class="metric-value" id="m-total">0</div>
+      <div class="metric-unit">SESSIONS</div>
+    </div>
+    <div class="metric-box" data-label="DIESE WOCHE">
+      <div class="metric-value" id="m-week">0</div>
+      <div class="metric-unit">VON 3 TAGEN</div>
+    </div>
+    <div class="metric-box" data-label="WOCHEN AKTIV">
+      <div class="metric-value" id="m-streak">0</div>
+      <div class="metric-unit">STREAK</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('training')">// TRAINING</button>
+    <button class="tab-btn" onclick="switchTab('history')">//  VERLAUF</button>
+    <button class="tab-btn" onclick="switchTab('progress')">// FORTSCHRITT</button>
+  </div>
+
+  <!-- ══ PANEL: TRAINING ══ -->
+  <div class="panel active" id="panel-training">
+
+    <div class="section-label">01 — AUFWÄRMEN</div>
+    <div class="info-card">
+      <div class="info-card-field">
+        <div class="field-label">Dauer (min)</div>
+        <input class="retro-input" type="number" id="warmup-min" value="10" min="0" max="60">
+      </div>
+      <div style="flex:1; font-size:12px; color:var(--amber-dim); letter-spacing:0.05em; line-height:1.7;">
+        GERÄT: RUDERGERÄT · FAHRRAD · CROSSTRAINER<br>
+        ZIEL: LEICHT AUSSER ATEM, ABER SPRECHEN MÖGLICH
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:18px;">02 — KRAFTTRAINING &nbsp;[3 SÄTZE × 10–12 WDH.]</div>
+    <div id="ex-container"></div>
+
+    <div class="section-label" style="margin-top:18px;">03 — CARDIO</div>
+    <div class="info-card">
+      <div class="info-card-field">
+        <div class="field-label">Dauer (min)</div>
+        <input class="retro-input" type="number" id="cardio-min" value="15" min="0" max="90">
+      </div>
+      <div class="info-card-field">
+        <div class="field-label">Gerät</div>
+        <select class="retro-select" id="cardio-type">
+          <option>Rudergerät</option>
+          <option>Fahrrad</option>
+          <option>Crosstrainer</option>
+          <option>Laufband</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn-finish" onclick="finishWorkout()">
+      <span>▶ EINHEIT ABSCHLIESSEN &amp; SPEICHERN</span>
+    </button>
+
+  </div>
+
+  <!-- ══ PANEL: VERLAUF ══ -->
+  <div class="panel" id="panel-history">
+    <div class="section-label">TRAININGSHISTORIE</div>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- ══ PANEL: FORTSCHRITT ══ -->
+  <div class="panel" id="panel-progress">
+    <div class="section-label">WOCHENAKTIVITÄT</div>
+    <div id="week-bars" style="margin-bottom:24px;"></div>
+
+    <div class="section-label">GEWICHTSFORTSCHRITT</div>
+    <div id="weight-list"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const EXERCISES = [
+  { id:'squat',    name:'GOBLET SQUAT',          group:'BEINE / GESÄSS', sets:3, reps:'10–12' },
+  { id:'lat',      name:'LAT-ZUG MASCHINE',       group:'RÜCKEN',         sets:3, reps:'10–12' },
+  { id:'bench',    name:'SCHRÄGBANKDRÜCKEN',      group:'BRUST / SCHULTER',sets:3, reps:'10–12' },
+  { id:'shoulder', name:'SCHULTERDRÜCKEN',         group:'SCHULTERN',      sets:3, reps:'10–12' },
+  { id:'plank',    name:'PLANK',                   group:'CORE',           sets:3, reps:'30–45s' },
+];
+
+let state = JSON.parse(localStorage.getItem('oezi_gym') || 'null') || {
+  sessions: [],
+  startDate: Date.now(),
+  setData: {}
+};
+function save() { localStorage.setItem('oezi_gym', JSON.stringify(state)); }
+
+function getWeek() {
+  return Math.max(1, Math.ceil((Date.now() - state.startDate) / (7*864e5)));
+}
+function getWeekStart(weekNum) {
+  return state.startDate + (weekNum - 1) * 7 * 864e5;
+}
+function sessionsThisWeek() {
+  const w = getWeek();
+  const start = getWeekStart(w);
+  const end = start + 7 * 864e5;
+  return state.sessions.filter(s => s.date >= start && s.date < end).length;
+}
+function weeksActive() {
+  const set = new Set(state.sessions.map(s =>
+    Math.max(1, Math.ceil((s.date - state.startDate) / (7*864e5)))
+  ));
+  return set.size;
+}
+
+function updateMetrics() {
+  const now = new Date();
+  document.getElementById('date-display').textContent =
+    now.toLocaleDateString('de-DE', { weekday:'short', day:'2-digit', month:'short', year:'2-digit' }).toUpperCase();
+  document.getElementById('week-display').textContent = 'TRAININGSWOCHE ' + getWeek();
+  document.getElementById('m-total').textContent = state.sessions.length;
+  document.getElementById('m-week').textContent = sessionsThisWeek();
+  document.getElementById('m-streak').textContent = weeksActive();
+}
+
+function renderExercises() {
+  const c = document.getElementById('ex-container');
+  c.innerHTML = '';
+  EXERCISES.forEach(ex => {
+    if (!state.setData[ex.id]) {
+      state.setData[ex.id] = Array.from({length:ex.sets}, () => ({kg:'', done:false}));
+    }
+    const card = document.createElement('div');
+    card.className = 'ex-card';
+    card.innerHTML = `
+      <div class="ex-card-header">
+        <span class="ex-name">${ex.name}</span>
+        <span class="ex-group-tag">${ex.group}</span>
+      </div>
+      <div class="sets-container" id="sets-${ex.id}"></div>`;
+    c.appendChild(card);
+
+    const row = card.querySelector(`#sets-${ex.id}`);
+    for (let i = 0; i < ex.sets; i++) {
+      const s = state.setData[ex.id][i];
+      const cell = document.createElement('div');
+      cell.className = 'set-cell' + (s.done ? ' done' : '');
+      cell.innerHTML = `
+        <div class="set-num">SATZ ${i+1}</div>
+        <span class="set-check">${s.done ? '◆' : '◇'}</span>
+        <input class="set-weight-input" type="number" value="${s.kg}" placeholder="kg"
+          min="0" max="300" step="0.5" data-ex="${ex.id}" data-set="${i}"
+          onclick="event.stopPropagation()">
+        <div class="set-reps">${ex.reps}</div>`;
+      cell.addEventListener('click', function(e) {
+        if (e.target.tagName === 'INPUT') return;
+        state.setData[ex.id][i].done = !state.setData[ex.id][i].done;
+        save(); renderExercises();
+      });
+      cell.querySelector('input').addEventListener('change', function() {
+        state.setData[ex.id][i].kg = this.value; save();
+      });
+      row.appendChild(cell);
+    }
+  });
+}
+
+function finishWorkout() {
+  let totalDone = 0, total = 0;
+  const weights = {};
+  EXERCISES.forEach(ex => {
+    const d = state.setData[ex.id] || [];
+    d.forEach(s => {
+      total++;
+      if (s.done) totalDone++;
+      const kg = parseFloat(s.kg);
+      if (kg > 0) weights[ex.id] = Math.max(weights[ex.id]||0, kg);
+    });
+  });
+
+  state.sessions.push({
+    date: Date.now(),
+    setsCompleted: totalDone,
+    totalSets: total,
+    cardioMin: parseInt(document.getElementById('cardio-min').value) || 0,
+    cardioType: document.getElementById('cardio-type').value,
+    warmupMin: parseInt(document.getElementById('warmup-min').value) || 0,
+    weights
+  });
+
+  state.setData = {};
+  save();
+  updateMetrics();
+  renderExercises();
+  toast('EINHEIT GESPEICHERT — GUT GEMACHT ÖZI (ง •̀_•́)ง');
+}
+
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  if (!state.sessions.length) {
+    el.innerHTML = '<div class="empty-msg">[ KEINE DATEN ]</div>'; return;
+  }
+  el.innerHTML = '';
+  [...state.sessions].reverse().forEach(s => {
+    const d = new Date(s.date);
+    const dateStr = d.toLocaleDateString('de-DE',{weekday:'long',day:'2-digit',month:'2-digit',year:'2-digit'}).toUpperCase();
+    const row = document.createElement('div');
+    row.className = 'history-entry';
+    row.innerHTML = `
+      <div>
+        <div class="history-date">${dateStr}</div>
+        <div class="history-meta">${s.warmupMin}MIN AUFWÄRMEN · ${s.cardioMin}MIN ${s.cardioType.toUpperCase()}</div>
+      </div>
+      <div class="history-badge">${s.setsCompleted}/${s.totalSets} SÄTZE</div>`;
+    el.appendChild(row);
+  });
+}
+
+function renderProgress() {
+  const barsEl = document.getElementById('week-bars');
+  barsEl.innerHTML = '';
+  const weekMap = {};
+  state.sessions.forEach(s => {
+    const w = Math.max(1, Math.ceil((s.date - state.startDate) / (7*864e5)));
+    weekMap[w] = (weekMap[w]||0) + 1;
+  });
+  const maxW = Math.max(getWeek(), ...Object.keys(weekMap).map(Number), 1);
+  for (let w = 1; w <= Math.min(maxW, 16); w++) {
+    const count = weekMap[w] || 0;
+    const pct = Math.round((count/3)*100);
+    const row = document.createElement('div');
+    row.className = 'progress-row';
+    row.innerHTML = `
+      <span class="progress-label">WOCHE ${w}</span>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <span class="progress-count">${count}/3</span>`;
+    barsEl.appendChild(row);
+  }
+
+  const wl = document.getElementById('weight-list');
+  wl.innerHTML = '';
+  const allWeights = {};
+  state.sessions.forEach(s => {
+    Object.entries(s.weights||{}).forEach(([id, kg]) => {
+      if (!allWeights[id]) allWeights[id] = [];
+      allWeights[id].push(kg);
+    });
+  });
+  if (!Object.keys(allWeights).length) {
+    wl.innerHTML = '<div class="empty-msg">[ KEINE GEWICHTSDATEN ]</div>'; return;
+  }
+  EXERCISES.forEach(ex => {
+    const vals = allWeights[ex.id];
+    if (!vals || !vals.length) return;
+    const first = vals[0], last = vals[vals.length-1];
+    const diff = Math.round((last - first)*10)/10;
+    const row = document.createElement('div');
+    row.className = 'weight-row';
+    row.innerHTML = `
+      <div>
+        <div class="weight-ex">${ex.name}</div>
+        <div class="weight-delta ${diff > 0 ? 'delta-up' : 'delta-same'}">${diff > 0 ? '+'+diff+'KG STÄRKER' : '— STAGNIERT'}</div>
+      </div>
+      <div class="weight-vals">${first}KG → ${last}KG</div>`;
+    wl.appendChild(row);
+  });
+}
+
+function switchTab(tab) {
+  ['training','history','progress'].forEach(t => {
+    document.getElementById('panel-'+t).classList.toggle('active', t===tab);
+  });
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', ['training','history','progress'][i]===tab);
+  });
+  if (tab==='history') renderHistory();
+  if (tab==='progress') renderProgress();
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+updateMetrics();
+renderExercises();
+setInterval(updateMetrics, 60000);
+</script>
+</body>
+</html>

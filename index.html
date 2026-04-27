@@ -318,6 +318,7 @@ async function loadFromDB() {
     setSyncStatus('ok', 'BASIC FIT HEIDELBERG · FULL BODY PROTOCOL · CLOUD SYNC AKTIV');
     updateMetrics();
     renderExercises();
+    updateCardioTip();
   } catch(e) {
     setSyncStatus('error', 'VERBINDUNGSFEHLER — PRÜFE INTERNET');
     toast('DB FEHLER: ' + e.message);
@@ -537,7 +538,8 @@ function getCardioRecommendation() {
 function updateCardioTip() {
   document.getElementById('cardio-tip').innerHTML = getCardioRecommendation();
 }
-updateCardioTip();
+
+loadFromDB();
 setInterval(updateMetrics, 60000);
 </script>
 </body>

@@ -141,6 +141,26 @@ body {
 .delta-up { font-size: 13px; color: var(--green-go); letter-spacing: 0.08em; }
 .delta-same { font-size: 13px; color: var(--amber-dim); letter-spacing: 0.08em; }
 
+/* GAMIFICATION */
+.gamification-panel { border: 2px solid var(--amber); background: var(--brown-card); padding: 20px; margin-bottom: 20px; border-radius: 4px; }
+.gamification-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+.gamification-title { font-family: var(--font-display); font-size: 16px; color: var(--amber-bright); letter-spacing: 0.05em; }
+.level-badge { background: var(--amber); color: var(--brown-deep); padding: 6px 14px; font-family: var(--font-display); font-size: 14px; font-weight: 700; border-radius: 4px; }
+.xp-bar-container { margin-bottom: 16px; }
+.xp-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--amber-dim); margin-bottom: 6px; }
+.xp-track { height: 12px; background: var(--brown-surface); border-radius: 6px; overflow: hidden; }
+.xp-fill { height: 100%; background: linear-gradient(90deg, var(--amber-dim), var(--amber-bright)); border-radius: 6px; transition: width 0.5s ease; }
+.streak-display { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.streak-item { text-align: center; }
+.streak-num { font-family: var(--font-display); font-size: 28px; color: var(--amber-bright); }
+.streak-label { font-size: 11px; color: var(--amber-dim); letter-spacing: 0.08em; }
+.recommendation-card { border: 2px solid var(--green-go); background: rgba(76,175,80,0.1); padding: 16px; margin-top: 16px; border-radius: 4px; }
+.recommendation-title { font-size: 13px; color: var(--green-go); letter-spacing: 0.1em; margin-bottom: 8px; font-weight: 600; }
+.recommendation-text { font-size: 14px; color: var(--amber); }
+.recommendation-weight { font-family: var(--font-crt); font-size: 24px; color: var(--amber-bright); }
+.achievement-unlock { animation: pulse 0.5s ease; }
+@keyframes pulse { 0%,100%{transform:scale(1)}50%{transform:scale(1.05)} }
+
 /* TOAST */
 @keyframes slideUp { from{transform:translate(-50%,20px);opacity:0} to{transform:translate(-50%,0);opacity:1} }
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--brown-card); border: 2px solid var(--amber); color: var(--amber-bright); font-family: var(--font-mono); font-size: 15px; letter-spacing: 0.05em; padding: 14px 28px; opacity: 0; pointer-events: none; z-index: 99999; box-shadow: 0 0 24px rgba(232,160,32,0.4); transition: opacity 0.3s; white-space: nowrap; max-width: 90vw; border-radius: 4px; }
@@ -488,12 +508,85 @@ async function deleteSession(idx, event) {
 function renderProgress() {
   const barsEl = document.getElementById('week-bars');
   barsEl.innerHTML = '';
+  
+  // === GAMIFICATION ===
+  const totalSets = appState.sessions.reduce((sum, s) => sum + (s.setsCompleted||0), 0);
+  const totalSessions = appState.sessions.length;
+  const xp = totalSets * 10 + totalSessions * 50;
+  const level = Math.floor(xp / 500) + 1;
+  const xpInLevel = xp % 500;
+  const xpPct = (xpInLevel / 500) * 100;
+  
+  // Calculate streaks
+  const sortedSessions = [...appState.sessions].sort((a,b) => a.date - b.date);
+  let currentStreak = 0;
+  let longestStreak = 0;
+  let tempStreak = 0;
+  let lastDate = null;
+  
+  sortedSessions.forEach(s => {
+    const sessionDate = new Date(s.date).toDateString();
+    if (lastDate) {
+      const diff = new Date(s.date) - new Date(lastDate);
+      const days = diff / (1000*60*60*24);
+      if (days <= 3) {
+        tempStreak++;
+      } else {
+        tempStreak = 1;
+      }
+    } else {
+      tempStreak = 1;
+    }
+    longestStreak = Math.max(longestStreak, tempStreak);
+    lastDate = sessionDate;
+  });
+  currentStreak = tempStreak;
+  
+  // Build gamification panel
+  let gamHtml = `<div class="gamification-panel">
+    <div class="gamification-header">
+      <span class="gamification-title">⚡ TRAINER LEVEL</span>
+      <span class="level-badge">LVL ${level}</span>
+    </div>
+    <div class="xp-bar-container">
+      <div class="xp-label"><span>XP</span><span>${xpInLevel}/500</span></div>
+      <div class="xp-track"><div class="xp-fill" style="width:${xpPct}%"></div></div>
+    </div>
+    <div class="streak-display">
+      <div class="streak-item">
+        <div class="streak-num">${currentStreak}</div>
+        <div class="streak-label">AKTUELL</div>
+      </div>
+      <div class="streak-item">
+        <div class="streak-num">${longestStreak}</div>
+        <div class="streak-label">REKORD</div>
+      </div>
+      <div class="streak-item">
+        <div class="streak-num">${totalSets}</div>
+        <div class="streak-label">SÄTZE</div>
+      </div>
+      <div class="streak-item">
+        <div class="streak-num">${xp}</div>
+        <div class="streak-label">GESAMT XP</div>
+      </div>
+    </div>
+  </div>`;
+  
+  // Weight recommendations based on performance
+  const recHtml = getWeightRecommendations();
+  if(recHtml) gamHtml += recHtml;
+  
+  barsEl.innerHTML = gamHtml;
+  
+  // === WOCHENAKTIVITÄT ===
   const weekMap = {};
   appState.sessions.forEach(s => {
     const w = Math.max(1, Math.ceil((s.date - appState.startDate)/(7*864e5)));
     weekMap[w] = (weekMap[w]||0)+1;
   });
   const maxW = Math.max(getWeek(), ...Object.keys(weekMap).map(Number), 1);
+  
+  let weekHtml = '<div class="section-label" style="margin-top:24px;">WOCHENAKTIVITÄT</div>';
   for (let w=1; w<=Math.min(maxW,16); w++) {
     const count = weekMap[w]||0, pct = Math.round((count/3)*100);
     const row = document.createElement('div');
@@ -501,11 +594,15 @@ function renderProgress() {
     row.innerHTML = `<span class="progress-label">KW ${w}</span><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div><span class="progress-count">${count}/3</span>`;
     barsEl.appendChild(row);
   }
+  
+  // === GEWICHTSFORTSCHRITT ===
   const wl = document.getElementById('weight-list');
   wl.innerHTML = '';
   const allWeights = {};
   appState.sessions.forEach(s => { Object.entries(s.weights||{}).forEach(([id,kg])=>{ if(!allWeights[id]) allWeights[id]=[]; allWeights[id].push(kg); }); });
   if (!Object.keys(allWeights).length) { wl.innerHTML='<div class="empty-msg">[ KEINE GEWICHTSDATEN ]</div>'; return; }
+  
+  wl.innerHTML += '<div class="section-label">GEWICHTSFORTSCHRITT</div>';
   EXERCISES.forEach(ex => {
     const vals = allWeights[ex.id];
     if(!vals||!vals.length) return;
@@ -515,6 +612,48 @@ function renderProgress() {
     row.innerHTML = `<div><div class="weight-ex">${ex.name}</div><div class="${diff>0?'delta-up':'delta-same'}">${diff>0?'+'+diff+'KG STÄRKER':'— STAGNIERT'}</div></div><div class="weight-vals">${first}KG → ${last}KG</div>`;
     wl.appendChild(row);
   });
+}
+
+function getWeightRecommendations() {
+  if(appState.sessions.length < 2) return '';
+  
+  const allWeights = {};
+  appState.sessions.forEach(s => { Object.entries(s.weights||{}).forEach(([id,kg])=>{ if(!allWeights[id]) allWeights[id]=[]; allWeights[id].push(kg); }); });
+  
+  let recs = [];
+  EXERCISES.forEach(ex => {
+    const vals = allWeights[ex.id];
+    if(!vals || vals.length < 2) return;
+    
+    const last = vals[vals.length - 1];
+    const prev = vals[vals.length - 2];
+    const setsDone = appState.sessions[appState.sessions.length - 1].setsCompleted || 0;
+    const totalSets = appState.sessions[appState.sessions.length - 1].totalSets || 1;
+    const completionRate = setsDone / totalSets;
+    
+    // If 80%+ sets completed and same weight → recommend increase
+    if (completionRate >= 0.8 && last === prev) {
+      const recommended = last + 2.5;
+      recs.push({ ex, current: last, recommended, reason: 'ALLE SÄTZE GESCHAFFT!' });
+    }
+    // If 100% sets completed → strong recommend
+    else if (completionRate >= 1) {
+      const recommended = last + 2.5;
+      recs.push({ ex, current: last, recommended, reason: 'PERFEKT! ZEIT FÜR MEHR' });
+    }
+  });
+  
+  if(recs.length === 0) return '';
+  
+  let html = '<div class="recommendation-title">🎯 TRAINER EMPFEHLUNG</div>';
+  recs.forEach(r => {
+    html += `<div class="recommendation-card">
+      <div style="font-size:12px;color:var(--amber-dim);margin-bottom:4px;">${r.ex.name}</div>
+      <div class="recommendation-text">${r.reason}</div>
+      <div class="recommendation-weight">${r.current}KG → ${r.recommended}KG</div>
+    </div>`;
+  });
+  return html;
 }
 
 function switchTab(tab) {
